@@ -166,7 +166,7 @@ step. If you change one, change all eight.
 
 ```
 index.html            the scroll experience
-hero-water.html       the same site with the alternate title card
+hero-water.html       the same site with the alternate water version
 about.html
 contact.html
 work/*.html           five project pages
@@ -176,6 +176,7 @@ js/site.js            capability flags, viewport unit, menu
 js/shutter.js         the scroll mechanic
 js/tint.js            colour on reach
 js/hero-water.js      the alternate title card, WebGL
+js/frame-ripple.js    colour arriving on a wave, WebGL
 assets/               wordmark, monogram, favicon, social card
 media/                project photographs
 DESIGN.md             the visual system and why it is what it is
@@ -188,16 +189,25 @@ over photographs. Regenerate them from the original if the logo changes.
 
 ---
 
-## The alternate title card
+## The alternate water version
 
-`hero-water.html` is the whole site with one thing changed: the wordmark sits
-under a still black liquid instead of on the page, and the pointer disturbs it.
-Everything below the first frame is identical. Open the two pages side by side
-to choose.
+`hero-water.html` is the whole site on water. Open it beside `index.html` to
+choose. Two things change:
 
-`index.html` does not load a byte of it. The variant is three files
-(`hero-water.html`, `css/hero-water.css`, `js/hero-water.js`) and the diff
-against `index.html` is six lines.
+**The title card.** The wordmark sits under a still black liquid instead of on
+the page, and the pointer disturbs it.
+
+**The project covers.** `js/tint.js` already blooms colour out from the centre
+of a frame's subject while the pointer holds on it. Here that bloom arrives on
+water: reach the subject and a ring leaves the centre, the colour rides out
+with it, and rings keep leaving while you hold. Take the pointer off and the
+water goes still *first* — in about a quarter of a second, against the half
+second the colour takes to drain — so what you watch drain is colour from a
+flat surface, never a ripple caught mid-travel.
+
+`index.html` does not load a byte of it. The variant is four files
+(`hero-water.html`, `css/hero-water.css`, `js/hero-water.js`,
+`js/frame-ripple.js`) and the diff against `index.html` is seven lines.
 
 **How it works.** A damped wave equation on the GPU, integrated across two
 half-float buffers that swap every step. Each texel holds the surface height
@@ -227,8 +237,41 @@ has no build step to hide that behind.
   elements, which is how both versions place the mark identically at every
   width.
 
-If this becomes the site, move the three files' contents into `index.html`,
-`css/site.css` and a script tag, and drop the ` — Water` suffix from the title.
+### The covers, specifically
+
+The rings are not the title card's simulation. The hero integrates a wave field
+because its input is an arbitrary pointer path, which has no closed form. A
+cover's source is a single fixed point, so the answer is `sin(r*k - t*w)` and
+is evaluated straight in the fragment shader: no height field, no ping-pong, no
+float render target, and the rings come out crisp instead of smeared across a
+512px buffer.
+
+It attaches through what `tint.js` already publishes to the DOM — the `is-on`
+class, the `--tint-x` / `--tint-y` centre, and the `src` of the colour crop it
+picked for this device. Nothing reaches into either shared module, which is why
+`index.html` keeps running the plain tint untouched.
+
+While the canvas is up it draws the **whole** frame, monochrome photograph and
+all, and the layers it stands in for are hidden. That is a performance
+decision, and a large one: blending a viewport-sized transparent canvas over
+the shutter's eleven clipped photographs measured about three times what
+drawing it costs. Covering them instead takes them out of the compositor
+entirely. Two consequences follow:
+
+- The canvas stands down the moment you scroll, so the shutter always finds its
+  own layers where it left them. `tint.js` carries the colour through the wipe
+  on its own layer, exactly as the shipped reel does. The subject is offered
+  again once the scroll settles.
+- Both layers are driven from the same instants, with the same curve and the
+  same durations as `site.css`, so the handover in either direction is
+  invisible. Verified: a screenshot before a hover and one after the colour has
+  fully drained are byte-identical.
+
+Displacement is tied to the reveal, so the two crops always agree exactly where
+one gives way to the other and the boundary cannot show a seam.
+
+If this becomes the site, move the four files' contents into `index.html`,
+`css/site.css` and script tags, and drop the ` — Water` suffix from the title.
 
 ---
 

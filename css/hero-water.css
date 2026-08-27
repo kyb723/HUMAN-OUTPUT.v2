@@ -48,3 +48,26 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* ---- colour on a wave (the reel) --------------------------- */
+
+.frame__ripple {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* While the canvas is up it draws the whole frame: the monochrome
+   photograph and the colour flooding through it. The layers it stands
+   in for come out of the compositor's way, because blending a
+   viewport-sized canvas over eleven clipped photographs every frame
+   measured three times what drawing it costs. Both come back the
+   moment it stands down, so the shutter finds them where it left
+   them - and if the canvas never came up, they were never touched. */
+.frame.has-ripple .frame__blades,
+.frame.has-ripple .frame__tint { display: none; }
+.frame:not(.has-ripple) .frame__ripple { display: none; }
