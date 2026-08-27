@@ -45,6 +45,60 @@ is lost but the wipe.
 
 ---
 
+## Two heroes
+
+Two versions of the index are live. Everything below the first viewport is
+identical in both; only the opening frame differs.
+
+| Page | Hero |
+|---|---|
+| `index.html` | Title card. Wordmark and descriptor on black. Tagged `v1-shutter-hero`. |
+| `hero-b.html` | Liquid. Three drops trail the pointer, fuse with each other and blend into the wordmark. |
+
+`hero-b.html` adds three files and changes nothing else: `css/hero-b.css`,
+`js/hero-b.js`, and an inline SVG goo filter in its own `<head>`. The shared
+stylesheet, both shared scripts and every other page are untouched, so the two
+heroes cannot affect each other.
+
+### How the liquid hero works
+
+The drops sit in a filtered layer. The filter blurs it, then drives alpha
+through a steep ramp, so two blurred shapes that overlap snap into one
+silhouette: metaballs. The bridge that stretches and snaps as a drop leaves is
+not scripted, it falls out of that threshold.
+
+The wordmark is deliberately **outside** the filter. Blur-plus-threshold closes
+every concavity narrower than about `1.35 x sigma`, and the split-O gap is only
+7px on screen at desktop size, so putting the wordmark in the goo fused
+adjacent letters and swallowed the brand device. It is not needed there anyway:
+the drops and the wordmark are the same white, so an overlap already reads as
+one mass with no seam.
+
+Everything tunable sits at the top of `js/hero-b.js`:
+
+| Constant | Does |
+|---|---|
+| `EASE` | lag per drop. Wider spread makes them string out further on a fast move. |
+| `ORBIT` | phase and radius factor per drop within the cluster. |
+| `CLUSTER` | cluster radius. Scales with the wordmark. |
+| `IDLE_AFTER` | ms of stillness before the drops drift on their own. |
+
+Blur, cluster radius and drop sizes all scale with the rendered wordmark, so
+the effect holds its proportions from a phone to a wide desktop.
+
+**On a phone there is no cursor**, so with no pointer the cluster drifts on a
+slow path across the wordmark and touch-drag takes it over. Under
+`prefers-reduced-motion` the drops are hidden and the hero falls back to the
+same still composition as `index.html`.
+
+One thing to know if you promote this hero: `assets/wordmark.png` was written
+with pure white ink, while the rest of the site uses `--ink` (`#f4f4f2`). The
+drops are set to pure white to match it exactly, because any difference shows
+as a seam where they overlap a letter. Regenerating the wordmark at `#f4f4f2`
+and setting the drops back to `var(--ink)` would make it fully token-clean.
+
+---
+
 ## Replace this before launch
 
 Everything below is placeholder. While `<html data-draft="true">` is set, every
@@ -118,13 +172,16 @@ step. If you change one, change all eight.
 ## Files
 
 ```
-index.html            the scroll experience
+index.html            the scroll experience, title-card hero
+hero-b.html           same page with the liquid hero
 about.html
 contact.html
 work/*.html           five project pages
 css/site.css          all styling, tokens at the top
+css/hero-b.css        liquid hero only
 js/site.js            capability flags, viewport unit, menu
 js/shutter.js         the scroll mechanic
+js/hero-b.js          liquid hero only
 assets/               wordmark, monogram, favicon, social card
 media/                project photographs
 DESIGN.md             the visual system and why it is what it is
