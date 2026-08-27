@@ -71,3 +71,13 @@
 .frame.has-ripple .frame__blades,
 .frame.has-ripple .frame__tint { display: none; }
 .frame:not(.has-ripple) .frame__ripple { display: none; }
+
+/* The colour moves at the pace of the water now, not at the pace of a
+   hover state. site.css runs 780ms out and 480ms back for the shipped
+   reel; this version is slower on both, and js/frame-ripple.js carries
+   the same two numbers so that the canvas and this layer agree. They
+   have to: this one takes the colour over for the length of a scroll,
+   and the handover in either direction must land where the other left
+   off. Change one, change both. */
+.frame__tint { transition-duration: 900ms; }
+.frame__tint.is-on { transition-duration: 2200ms; }

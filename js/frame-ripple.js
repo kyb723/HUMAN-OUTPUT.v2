@@ -35,16 +35,24 @@
 
   /* ---- tuning ---------------------------------------------- */
 
-  var IN_MS    = 780;      /* bloom timings, from site.css            */
-  var OUT_MS   = 480;
-  var GATE_IN  = 90;       /* the water arrives with the colour...    */
-  var GATE_OUT = 260;      /* ...and leaves well before it            */
+  /* Bloom timings. site.css runs 780/480 for the shipped reel; this
+     version is deliberately slower, to move at the pace of the title
+     card's water rather than at the pace of a hover state. The same
+     numbers are set on .frame__tint in css/hero-water.css, because
+     that layer takes the colour over during a scroll and the handover
+     has to land where this left off. Change one, change both. */
+  var IN_MS    = 2200;
+  var OUT_MS   = 900;
+  var GATE_IN  = 140;      /* the water arrives with the colour...    */
+  var GATE_OUT = 420;      /* ...and leaves well before it            */
 
-  var WAVE_PX  = 150;      /* ring to ring                            */
-  var WIDTH_PX = 142;      /* how much of the wave train exists at all:*/
+  var WAVE_PX  = 230;      /* ring to ring. Broad and slow, like the  */
+                           /* swells a drop leaves on the title card,  */
+                           /* not the tight rings of a struck surface  */
+  var WIDTH_PX = 180;      /* how much of the wave train exists at all:*/
                            /* a packet this wide carries about three   */
                            /* rings and nothing behind them            */
-  var WAVE_MS  = 1150;     /* how long the rings take to cross. Longer */
+  var WAVE_MS  = 2900;     /* how long the rings take to cross. Longer */
                            /* than the bloom on purpose: they set out  */
                            /* on the colour's leading edge and carry on*/
                            /* past it, so the gesture is long enough to*/
@@ -55,7 +63,7 @@
                            /* centre there is no radial direction to  */
                            /* push along, and forcing one there wrings*/
                            /* the middle of the subject into a rosette*/
-  var AMP      = 16.0;     /* px of displacement across the packet     */
+  var AMP      = 18.0;     /* px of displacement across the packet     */
   var LIGHT    = 0.34;     /* shading across a wave, signed           */
 
   var FREQ = 2 * Math.PI / WAVE_PX;

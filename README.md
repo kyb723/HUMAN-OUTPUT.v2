@@ -199,13 +199,22 @@ the page, and the pointer disturbs it.
 
 **The project covers.** `js/tint.js` already blooms colour out from the centre
 of a frame's subject while the pointer holds on it. Here that bloom arrives on
-water: reach the subject and about three rings set out from the centre on the
-colour's leading edge, carry on past it, and are gone — roughly 1.15s, and then
-the surface is still and stays still for as long as you hold. It is a wave that
-passes through, not a surface that keeps being stirred. Take the pointer off
-and the water goes still *first* — about a quarter of a second, against the
-half second the colour takes to drain — so what you watch drain is colour from
-a flat surface, never a ripple caught mid-travel.
+water: reach the subject and about three broad rings set out from the centre on
+the colour's leading edge, carry on past it, and are gone. It is a wave that
+passes through, not a surface that keeps being stirred — once it has passed,
+the frame is still and stays still for as long as you hold.
+
+The pace is deliberately that of the title card's water and not that of a hover
+state: the colour takes 2.2s to flood and 0.9s to drain, against the shipped
+reel's 780ms and 480ms, and the rings are broad (230px crest to crest) and
+cross in 2.9s. Those two colour timings live in **two** places — `IN_MS` and
+`OUT_MS` in `js/frame-ripple.js`, and the `.frame__tint` transition durations
+at the foot of `css/hero-water.css` — because the canvas hands the colour back
+to that layer for the length of a scroll. Change one, change both.
+
+Take the pointer off and the water goes still *first* — about four tenths of a
+second, against the nine the colour takes to drain — so what you watch drain is
+colour from a flat surface, never a ripple caught mid-travel.
 
 `index.html` does not load a byte of it. The variant is four files
 (`hero-water.html`, `css/hero-water.css`, `js/hero-water.js`,
@@ -227,8 +236,11 @@ has no build step to hide that behind.
 
 - The height field is capped at 512px on its long side (320 on a phone) however
   big the canvas gets. Waves are broad and do not need the pixels.
-- The loop runs only while the title card is the live frame and the tab is
-  visible. Scroll to the first project and it stops dead.
+- The loop runs only while the title card is the frame in front and the tab is
+  visible. Being on screen is not enough: the card stays live underneath the
+  first project once that project has finished wiping across it, and simulating
+  a surface nobody can see is pure waste. It stops the moment the wipe passes
+  the halfway mark.
 - Displacement is clamped to 10px in the shader, so no speed of scrubbing can
   tear the letterforms.
 - Measured at a locked 60fps under continuous dragging (p95 18.2ms per frame).

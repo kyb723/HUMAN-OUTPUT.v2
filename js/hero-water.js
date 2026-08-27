@@ -604,25 +604,36 @@
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) stop();
-    else if (card.classList.contains('is-live')) start();
+    else if (shown()) start();
   });
 
   function onReduce() { if (reduce.matches) fallback(); }
   if (reduce.addEventListener) reduce.addEventListener('change', onReduce);
   else if (reduce.addListener) reduce.addListener(onReduce);
 
-  /* The shutter owns is-live. Follow it rather than duplicating the
-     scroll maths: no cycles are spent on water nobody can see. */
+  /* The shutter owns these. Follow them rather than duplicating the
+     scroll maths: no cycles are spent on water nobody can see.
+
+     is-live alone is not enough. The card stays live while the first
+     project wipes across it, and stays live once that wipe is complete
+     and it is covered entirely - simulating a surface nobody can see.
+     is-inert is set on every frame but the one in front, so the pair
+     of them is the real question: on screen, and the one being looked
+     at. */
+  function shown() {
+    return card.classList.contains('is-live') && !card.classList.contains('is-inert');
+  }
+
   new MutationObserver(function () {
     if (dead) return;
-    if (card.classList.contains('is-live')) start();
+    if (shown()) start();
     else stop();
   }).observe(card, { attributes: true, attributeFilter: ['class'] });
 
   /* Jost must be resident before the tagline is drawn, or the
      texture bakes in the fallback face. */
   function begin() {
-    if (!reduce.matches && card.classList.contains('is-live')) start();
+    if (!reduce.matches && shown()) start();
   }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(begin);
   else window.addEventListener('load', begin);
