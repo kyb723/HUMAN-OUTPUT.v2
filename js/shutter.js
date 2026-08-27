@@ -82,7 +82,15 @@
     }
 
     frame.insertBefore(wrap, frame.firstChild);
-    frame._blades = wrap.children;
+    /* A static list. wrap.children is live, and layout() walks it as if
+       every entry were a blade. */
+    frame._blades = Array.prototype.slice.call(wrap.children);
+
+    /* Sibling of the blade wrapper, not a child of it: same stacking
+       level, later in the document, so it paints over every blade while
+       staying under the scrim and the caption in the link above. */
+    if (window.HOTint) frame._tint = window.HOTint.create(frame, frame, wrap.nextSibling);
+
     layout(frame);
   }
 
@@ -118,6 +126,8 @@
         img.style.left = (-l) + 'px';
       }
     }
+
+    if (frame._tint) frame._tint.relayout();
   }
 
   function relayout() {
@@ -209,8 +219,10 @@
     var active = p >= 0.5 ? idx + 1 : idx;
     if (active !== lastActive) {
       lastActive = active;
+      var autoTint = window.HOTint && !window.HOTint.hoverable();
       for (var i = 0; i < frames.length; i++) {
         var isActive = i === active;
+        if (frames[i]._tint && autoTint) frames[i]._tint.set(isActive);
         frames[i].classList.toggle('is-inert', !isActive);
         frames[i].toggleAttribute('inert', !isActive);
       }

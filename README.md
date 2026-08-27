@@ -96,8 +96,12 @@ chrome: the top 8% (monogram and Menu), the bottom 22% (project title, over a
 scrim that darkens the bottom 46%), and the right 5% (the progress ruler, on
 landscape only).
 
-Deliver black and white. `DESIGN.md` locks the palette to monochrome; a colour
-photograph will fight every other surface on the site.
+Deliver **four** files: a monochrome and a colour version of each crop.
+`<project>-wide.jpg`, `<project>-tall.jpg`, `<project>-wide-colour.jpg` and
+`<project>-tall-colour.jpg`. The monochrome pair is what the page shows; the
+colour pair is loaded alongside it and revealed through a mask when the pointer
+finds the subject. Both members of a pair must be the same crop at the same
+pixel size, or the colour will not land on the frame it is revealing.
 
 If a source is landscape only and cannot be reshot, `media/marshall-tall.jpg`
 shows the fallback: crop to the subject, then stretch the smooth background
@@ -108,7 +112,11 @@ stays at its true proportions and no seam appears.
 the title card and the closing frame. Copy an existing one:
 
 ```html
-<article class="frame">
+<article class="frame"
+         data-tint-wide="media/your-project-wide-colour.jpg"
+         data-tint-tall="media/your-project-tall-colour.jpg"
+         data-subject-wide="28,24,48,50"
+         data-subject-tall="5,35,74,25">
   <a class="frame__link" href="work/your-project.html">
     <picture>
       <source media="(max-aspect-ratio: 1/1)" srcset="media/your-project-tall.jpg" width="1440" height="2560">
@@ -119,12 +127,20 @@ the title card and the closing frame. Copy an existing one:
       <div class="frame__scrim"></div>
       <div class="frame__caption">
         <h2 class="frame__name"><span class="sweep">Your Project</span></h2>
+        <p class="frame__tag">The project's own title</p>
         <p class="frame__disc">Discipline &amp; Discipline</p>
       </div>
     </div>
   </a>
 </article>
 ```
+
+`data-subject-wide` and `data-subject-tall` are the subject's bounding box in
+that crop, as `x,y,width,height` percentages of the image. They are what the
+colour bloom is centred on and what the pointer has to be inside for it to
+fire, so they have to be measured per crop: the subject sits in a different
+place in the wide and the tall composition. Get them from the image, not by
+eye. A frame with no `data-tint-wide` simply never blooms.
 
 The scroll length, the progress ruler and the blades all count the frames
 themselves, so nothing else needs updating.

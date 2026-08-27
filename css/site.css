@@ -420,6 +420,50 @@ a:focus-visible .sweep::after { transform: scaleX(1); }
   max-width: 16ch;
 }
 .frame__disc { color: var(--ink-2); }
+
+/* Client, then project, then discipline. Size carries the hierarchy so
+   all three can hold the same tone against a photograph. */
+.frame__tag,
+.hero__tag {
+  font-weight: 300;
+  letter-spacing: var(--track-tight);
+  line-height: 1.18;
+  color: var(--ink-2);
+  margin-top: -0.1rem;
+  margin-bottom: 0.45rem;
+}
+.frame__tag { font-size: clamp(1.05rem, 2.2vw, 1.65rem); }
+.hero__tag  { font-size: clamp(1.15rem, 2.4vw, 1.9rem); margin-bottom: 0.55rem; }
+
+/* The tint. A colour copy of the frame, revealed through a circle that
+   grows from the centre of the subject. Registering --tint-r as a length
+   is what lets it transition at all; an unregistered custom property
+   would jump straight to the end value. */
+@property --tint-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.frame__tint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: 0;
+  --tint-r: 0px;
+  -webkit-mask-image: radial-gradient(circle var(--tint-r) at var(--tint-x, 50%) var(--tint-y, 50%),
+    #000 0%, #000 76%, rgb(0 0 0 / 0) 100%);
+          mask-image: radial-gradient(circle var(--tint-r) at var(--tint-x, 50%) var(--tint-y, 50%),
+    #000 0%, #000 76%, rgb(0 0 0 / 0) 100%);
+  transition: --tint-r 480ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Colour arrives slower than it leaves. */
+.frame__tint.is-on { transition-duration: 780ms; }
+
+.reduced .frame__tint { transition: none; }
 .frame__link:hover .frame__name .sweep::after,
 .frame__link:focus-visible .frame__name .sweep::after { transform: scaleX(1); }
 

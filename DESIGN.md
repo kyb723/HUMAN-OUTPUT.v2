@@ -18,6 +18,12 @@ Locked dark, from the use scene rather than from category habit: a visitor judgi
 
 No accent. Not "neutrals plus one" but a total commitment to the greyscale the photography already lives in. Any hue introduced here would be the only colour on the page and would read as interface, not as work.
 
+The interface is never coloured. Colour lives inside the work, and only while the visitor is reaching for it: hold the pointer on the subject of a frame and colour blooms out from the centre of that subject, floods the frame, and drains back when the pointer leaves. Nothing else on the page changes, so the reveal reads as the work waking up rather than as a state change in the UI.
+
+This makes colour something earned rather than something asserted, and it keeps a colour photograph from having to sit permanently against a page built for greyscale. Base crops are delivered monochrome; a second colour crop is loaded per frame and revealed through a mask.
+
+Touch has no hover. On a coarse pointer a frame blooms by itself once it is the fully revealed one and drains as the next wipes over it, which is the nearest honest reading of "the visitor is on this work".
+
 | Token | Value | Use | Contrast on ground |
 |---|---|---|---|
 | `--ground` | `#0b0b0b` | page | - |
