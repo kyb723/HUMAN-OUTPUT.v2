@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Impeccable tooling state (local workflow settings, not part of the site)
+.impeccable/

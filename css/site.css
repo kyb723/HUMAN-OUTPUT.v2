@@ -1,0 +1,763 @@
+/* ============================================================
+   HUMAN OUTPUT
+   Creative Content & Production Studio
+   ------------------------------------------------------------
+   World:  "The shutter" - eleven vertical blades sweep each
+           project into frame. See DESIGN.md.
+   Ground: locked dark. No light mode, no accent colour.
+   ============================================================ */
+
+/* ---------- 1. Tokens ---------- */
+
+:root {
+  --ground:        #0b0b0b;
+  --ground-2:      #141414;
+  --ink:           #f4f4f2;
+  --ink-2:         #b4b4b0;
+  --ink-3:         #8a8a86;
+
+  --rule:          rgb(244 244 242 / 0.16);
+  --rule-strong:   rgb(244 244 242 / 0.38);
+
+  --font: "Jost", "Futura", "Century Gothic", ui-sans-serif, system-ui, sans-serif;
+
+  --t-meta:  0.6875rem;
+  --t-sm:    0.8125rem;
+  --t-body:  1rem;
+  --t-lead:  1.125rem;
+  --t-title: clamp(2.25rem, 5.4vw, 4.5rem);
+  --t-hero:  clamp(2.75rem, 7vw, 6rem);
+
+  --track-meta: 0.34em;
+  --track-tight: -0.02em;
+
+  --gut: clamp(1.25rem, 4vw, 3rem);
+  --stack: clamp(4.5rem, 11vh, 9rem);
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 0.5s;
+
+  --header-h: 68px;
+
+  /* set by JS from window.innerHeight, stable against mobile URL-bar resize */
+  --vh: 100vh;
+
+  /* shutter */
+  --blades: 11;
+}
+
+@media (max-width: 640px) {
+  :root { --header-h: 58px; }
+}
+
+/* ---------- 2. Reset ---------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  background: var(--ground);
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  /* Reserve the scrollbar gutter so locking scroll for the menu
+     overlay does not shift the layout underneath it. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 300;
+  font-size: var(--t-body);
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, p, figure, dl, dd, ul { margin: 0; padding: 0; }
+ul { list-style: none; }
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+/* ---------- 3. Browser surfaces ----------
+   The parts we did not draw still carry the design. */
+
+::selection { background: var(--ink); color: var(--ground); }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 0;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+html { scrollbar-color: #3a3a3a var(--ground); scrollbar-width: thin; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--ground); }
+::-webkit-scrollbar-thumb { background: #333; border: 3px solid var(--ground); }
+::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
+
+input, textarea { caret-color: var(--ink); }
+
+/* ---------- 4. Type utilities ---------- */
+
+.meta {
+  font-size: var(--t-meta);
+  font-weight: 400;
+  letter-spacing: var(--track-meta);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+.lead {
+  font-size: clamp(1.25rem, 1.9vw, 1.625rem);
+  line-height: 1.36;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  max-width: 26ch;
+  font-weight: 300;
+}
+
+.prose p {
+  max-width: 66ch;
+  color: var(--ink-2);
+  margin-bottom: 1.25em;
+}
+.prose p:last-child { margin-bottom: 0; }
+
+/* Fixed, not absolute. On the index the document scroll IS the
+   experience, so focusing an absolutely positioned off-screen link
+   scrolls the reel back to the title card and takes the project link
+   out of the tab order with it. */
+.skip-link {
+  position: fixed;
+  left: var(--gut);
+  top: -100px;
+  z-index: 300;
+  background: var(--ink);
+  color: var(--ground);
+  padding: 0.7rem 1.1rem;
+  font-size: var(--t-meta);
+  letter-spacing: var(--track-meta);
+  text-transform: uppercase;
+  transition: top 0.2s var(--ease);
+}
+.skip-link:focus { top: 1rem; }
+
+/* Underline that sweeps in from the left on hover. */
+.sweep {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.12em;
+}
+.sweep::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 100%; height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.45s var(--ease);
+}
+/* Hovering anywhere on the link, not only the text box itself, which
+   is smaller than the link's line box. */
+a:hover .sweep::after,
+.sweep:hover::after,
+a:focus-visible .sweep::after { transform: scaleX(1); }
+
+/* ---------- 5. Header ---------- */
+
+.header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 120;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--gut);
+  pointer-events: none;
+  mix-blend-mode: difference;
+}
+.header > * { pointer-events: auto; }
+
+.brand { display: block; line-height: 0; }
+.brand img {
+  height: 19px;
+  width: auto;
+}
+@media (max-width: 640px) { .brand img { height: 16px; } }
+
+.menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: var(--t-meta);
+  letter-spacing: var(--track-meta);
+  text-transform: uppercase;
+  color: var(--ink);
+  padding: 0.5rem 0;
+}
+.menu-toggle__bars {
+  position: relative;
+  width: 22px;
+  height: 9px;
+  flex: none;
+}
+.menu-toggle__bars i {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transition: transform 0.4s var(--ease), opacity 0.2s linear;
+}
+.menu-toggle__bars i:first-child { top: 0; }
+.menu-toggle__bars i:last-child  { top: 8px; }
+.menu-open .menu-toggle__bars i:first-child { transform: translateY(4px) rotate(45deg); }
+.menu-open .menu-toggle__bars i:last-child  { transform: translateY(-4px) rotate(-45deg); }
+.menu-toggle__label-close { display: none; }
+.menu-open .menu-toggle__label-open { display: none; }
+.menu-open .menu-toggle__label-close { display: inline; }
+
+@media (max-width: 480px) {
+  .menu-toggle__label-open,
+  .menu-toggle__label-close { display: none; }
+  .menu-open .menu-toggle__label-close { display: none; }
+}
+
+@media (max-width: 760px) {
+  .menu__nav a { font-size: clamp(1.75rem, 9vw, 2.75rem); }
+}
+
+/* ---------- 6. Menu overlay ---------- */
+
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: var(--ground);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding: calc(var(--header-h) + var(--gut)) var(--gut) var(--gut);
+  opacity: 0;
+  visibility: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transition: opacity 0.4s var(--ease), visibility 0s linear 0.4s;
+}
+.menu-open .menu {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s var(--ease), visibility 0s;
+}
+
+.menu__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 2.5rem var(--gut);
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .menu__body { grid-template-columns: 1fr; align-items: start; align-content: center; }
+}
+
+.menu__nav {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(0.25rem, 1.4vh, 0.75rem);
+}
+
+.menu__index ul {
+  display: grid;
+  gap: 0.55rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1.25rem;
+}
+.menu__index a {
+  color: var(--ink-3);
+  font-size: var(--t-body);
+  transition: color 0.3s var(--ease);
+}
+.menu__index a:hover,
+.menu__index a:focus-visible { color: var(--ink); }
+@media (max-width: 760px) {
+  .menu__index { margin-top: 0.5rem; }
+  .menu__index ul { gap: 0.35rem; }
+}
+.menu__nav a {
+  font-size: clamp(2rem, 8vw, 4.5rem);
+  font-weight: 300;
+  letter-spacing: var(--track-tight);
+  line-height: 1.12;
+  color: var(--ink-3);
+  transition: color 0.3s var(--ease);
+  width: max-content;
+  max-width: 100%;
+}
+.menu__nav a:hover,
+.menu__nav a:focus-visible { color: var(--ink); }
+.menu__nav a[aria-current="page"] { color: var(--ink); }
+
+.menu__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2.5rem;
+  align-items: baseline;
+  border-top: 1px solid var(--rule);
+  padding-top: 1.25rem;
+}
+
+/* ---------- 7. The reel (index) ---------- */
+
+.reel { position: relative; }
+
+/* Frames are transparent. The frame waiting in front is already
+   visible so its blades can wipe, so an opaque ground here would
+   paint over the frame the visitor is actually looking at. The page
+   ground comes from body; the closing frame supplies its own through
+   .blade--solid. */
+.frame {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  visibility: hidden;
+  z-index: 1;
+}
+.frame.is-live { visibility: visible; }
+.frame.is-front { z-index: 2; }
+.frame.is-inert { pointer-events: none; }
+
+/* Blades. Each is 1/11 of the frame and holds a copy of the image
+   shifted left by its own index, so the eleven together rebuild the
+   full-bleed photograph. --p drives the wipe via clip-path, which is
+   paint-only: no layout is triggered on scroll. */
+.frame__blades {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+/* Left and width are written in whole pixels by shutter.js, with a 1px
+   overlap between neighbours. Fractional flex widths rasterise each
+   blade against a half pixel and leave a hairline seam down the frame,
+   which is plainly visible on a light photograph. */
+.blade {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  overflow: hidden;
+  clip-path: inset(0 calc(100% - var(--p, 1) * 100%) 0 0);
+}
+.blade img {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+}
+.blade--solid { background: var(--ground); }
+
+/* Positioned elements paint above static ones in the same stacking
+   context, so the blades need an explicit floor and frame content an
+   explicit ceiling, or the blades cover the copy. */
+.frame__link,
+.card__inner,
+.close__inner { position: relative; z-index: 1; }
+.frame__link { position: absolute; inset: 0; display: block; }
+
+/* The single image used before JS builds the blades, and in
+   reduced-motion / no-JS mode. */
+.frame__base {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.js .frame__base { display: none; }
+
+/* Scrim so titles hold contrast over any photograph. */
+.frame__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom,
+      rgb(6 6 6 / 0.34) 0%,
+      rgb(6 6 6 / 0.10) 9%,
+      transparent 18%),
+    linear-gradient(to top,
+      rgb(6 6 6 / 0.80) 0%,
+      rgb(6 6 6 / 0.44) 22%,
+      rgb(6 6 6 / 0.05) 46%,
+      transparent 62%);
+  pointer-events: none;
+}
+
+.frame__overlay {
+  position: absolute;
+  inset: 0;
+  opacity: var(--caption-o, 1);
+  pointer-events: none;
+}
+
+.frame__caption {
+  position: absolute;
+  left: var(--gut);
+  right: var(--gut);
+  bottom: clamp(2.5rem, 8vh, 4.5rem);
+}
+.frame__name {
+  font-size: var(--t-title);
+  font-weight: 300;
+  letter-spacing: var(--track-tight);
+  line-height: 1.04;
+  margin-bottom: 0.55rem;
+  max-width: 16ch;
+}
+.frame__disc { color: var(--ink-2); }
+.frame__link:hover .frame__name .sweep::after,
+.frame__link:focus-visible .frame__name .sweep::after { transform: scaleX(1); }
+
+/* The frame link fills the viewport, so a ring on the link itself lands
+   on the screen edges where nobody can see it. Put the indicator on the
+   title, which is the visible affordance. */
+.frame__link:focus-visible { outline: none; }
+.frame__link:focus-visible .frame__name {
+  outline: 2px solid var(--ink);
+  outline-offset: 10px;
+}
+
+/* Title card, frame 0 */
+.frame--card { display: grid; place-items: center; text-align: center; }
+.card__inner { padding: 0 var(--gut); }
+.card__wordmark {
+  width: clamp(260px, 46vw, 620px);
+  height: auto;
+  margin: 0 auto 1.75rem;
+}
+.card__line {
+  color: var(--ink-3);
+  font-size: clamp(0.5625rem, 1.5vw, var(--t-meta));
+  letter-spacing: clamp(0.18em, 0.9vw, 0.42em);
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+/* Closing frame */
+.frame--close { display: grid; place-items: center; }
+.close__inner {
+  padding: 0 var(--gut);
+  text-align: center;
+  opacity: var(--caption-o, 1);
+}
+.close__head {
+  font-size: var(--t-title);
+  font-weight: 300;
+  letter-spacing: var(--track-tight);
+  line-height: 1.08;
+  margin-bottom: 1.5rem;
+}
+.close__mail {
+  font-size: clamp(1.0625rem, 1.7vw, 1.5rem);
+  font-weight: 300;
+  color: var(--ink);
+}
+
+/* Scroll runway: one 1.5x viewport block per frame, half for the last. */
+.runway { position: relative; pointer-events: none; }
+.runway > i {
+  display: block;
+  height: calc(var(--vh) * 1.5);
+}
+.runway > i:last-child { height: calc(var(--vh) * 0.5); }
+
+/* ---------- 8. Progress ruler ---------- */
+
+.ruler {
+  position: fixed;
+  right: var(--gut);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  mix-blend-mode: difference;
+}
+.ruler i {
+  display: block;
+  width: 18px;
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.3;
+  transform-origin: right center;
+  transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+}
+.ruler i.on { opacity: 1; transform: scaleX(1.75); }
+
+@media (max-width: 640px) { .ruler { display: none; } }
+
+/* ---------- 9. Interior pages ---------- */
+
+.page { padding-top: var(--header-h); }
+
+.shell {
+  padding-inline: var(--gut);
+  max-width: 1560px;
+  margin-inline: auto;
+}
+
+.bleed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--ground-2);
+}
+.bleed img { width: 100%; height: 100%; object-fit: cover; }
+.bleed--tall { aspect-ratio: 4 / 5; }
+.bleed--square { aspect-ratio: 1 / 1; }
+.bleed--wide { aspect-ratio: 21 / 9; }
+
+@media (max-width: 768px) {
+  .bleed, .bleed--wide { aspect-ratio: 3 / 2; }
+  .bleed--tall { aspect-ratio: 4 / 5; }
+}
+
+/* Project hero */
+.hero {
+  position: relative;
+  height: calc(var(--vh) - var(--header-h));
+  min-height: 420px;
+  overflow: hidden;
+}
+.hero img { width: 100%; height: 100%; object-fit: cover; }
+.hero__caption {
+  position: absolute;
+  left: var(--gut);
+  right: var(--gut);
+  bottom: clamp(2rem, 6vh, 3.5rem);
+}
+.hero__name {
+  font-size: var(--t-title);
+  font-weight: 300;
+  letter-spacing: var(--track-tight);
+  line-height: 1.04;
+}
+
+/* Meta grid: one hairline above the group, none between rows. */
+.factsheet {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem var(--gut);
+  border-top: 1px solid var(--rule);
+  padding-top: 1.5rem;
+  margin-top: var(--stack);
+}
+.factsheet dt { margin-bottom: 0.4rem; }
+.factsheet dd { font-size: var(--t-body); color: var(--ink); font-weight: 300; }
+
+@media (max-width: 768px) {
+  .factsheet { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Two-column text: statement left, detail right */
+.duo {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: var(--stack) clamp(2rem, 7vw, 7rem);
+  margin-top: var(--stack);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .duo { grid-template-columns: 1fr; gap: 2.25rem; }
+}
+
+/* Stacked full-bleed plates */
+.plates { margin-top: var(--stack); display: grid; gap: var(--gut); }
+.plates--pair { grid-template-columns: 1fr 1fr; }
+@media (max-width: 768px) { .plates--pair { grid-template-columns: 1fr; } }
+.plate figcaption {
+  margin-top: 0.75rem;
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  color: var(--ink-3);
+  max-width: 44ch;
+}
+
+.plates--single .plate {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+  gap: var(--gut);
+  align-items: end;
+}
+.plates--single .plate figcaption { margin-top: 0; padding-bottom: 0.35rem; }
+@media (max-width: 768px) {
+  .plates--single .plate { grid-template-columns: 1fr; gap: 0.75rem; }
+  .plates--single .plate figcaption { padding-bottom: 0; }
+}
+
+/* Next project */
+.next-work {
+  display: block;
+  margin-top: var(--stack);
+  border-top: 1px solid var(--rule);
+  padding: 2rem 0 0;
+}
+.next-work__name {
+  font-size: var(--t-title);
+  font-weight: 300;
+  letter-spacing: var(--track-tight);
+  line-height: 1.05;
+  color: var(--ink-3);
+  transition: color 0.35s var(--ease);
+  margin-top: 0.5rem;
+}
+.next-work:hover .next-work__name,
+.next-work:focus-visible .next-work__name { color: var(--ink); }
+
+/* About */
+.statement {
+  font-size: clamp(1.5rem, 3.4vw, 2.5rem);
+  font-weight: 300;
+  letter-spacing: var(--track-tight);
+  line-height: 1.2;
+  max-width: 24ch;
+}
+.capabilities {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--stack) var(--gut);
+  margin-top: var(--stack);
+  border-top: 1px solid var(--rule);
+  padding-top: 2rem;
+}
+@media (max-width: 900px) { .capabilities { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .capabilities { grid-template-columns: 1fr; gap: 2.25rem; } }
+.capability h2 {
+  font-size: var(--t-lead);
+  font-weight: 400;
+  letter-spacing: var(--track-tight);
+  margin-bottom: 0.5rem;
+}
+.capability p { color: var(--ink-2); font-size: var(--t-sm); max-width: 34ch; }
+
+/* Contact */
+.contact-head {
+  font-size: var(--t-hero);
+  font-weight: 300;
+  letter-spacing: var(--track-tight);
+  line-height: 1.06;
+  max-width: 12ch;
+}
+.contact-rows {
+  margin-top: var(--stack);
+  border-top: 1px solid var(--rule);
+}
+.contact-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 3fr);
+  gap: 1rem var(--gut);
+  padding: 1.6rem 0;
+}
+.contact-row + .contact-row { border-top: 1px solid var(--rule); }
+.contact-row__value { font-size: var(--t-lead); font-weight: 300; }
+@media (max-width: 640px) {
+  .contact-row { grid-template-columns: 1fr; gap: 0.5rem; }
+}
+
+/* ---------- 10. Footer ---------- */
+
+.footer {
+  margin-top: var(--stack);
+  border-top: 1px solid var(--rule);
+  padding: 1.75rem 0 2.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.footer__mark { height: 15px; width: auto; opacity: 0.75; }
+.footer nav { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+
+/* ---------- 11. Draft placeholder marking ----------
+   Delete data-draft on <html> to ship clean. */
+
+.ph { color: inherit; }
+[data-draft="true"] .ph {
+  text-decoration: underline dotted rgb(244 244 242 / 0.42);
+  text-underline-offset: 0.28em;
+}
+.draft-chip { display: none; }
+[data-draft="true"] .draft-chip {
+  display: block;
+  position: fixed;
+  left: var(--gut);
+  bottom: 0.9rem;
+  z-index: 130;
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  background: rgb(11 11 11 / 0.86);
+  border: 1px solid var(--rule);
+  padding: 0.45rem 0.7rem;
+  pointer-events: none;
+  max-width: calc(100vw - var(--gut) * 2);
+}
+@media (max-width: 640px) { [data-draft="true"] .draft-chip { display: none; } }
+
+/* ---------- 12. Reduced motion / no JS ----------
+   The reel unstacks into ordinary full-bleed sections.
+   Nothing is lost but the wipe. */
+
+.no-js .reel .frame,
+.reduced .reel .frame {
+  position: relative;
+  inset: auto;
+  background: var(--ground);
+  visibility: visible;
+  height: var(--vh);
+  min-height: 420px;
+  z-index: auto;
+  pointer-events: auto;
+}
+.no-js .runway,
+.reduced .runway { display: none; }
+.no-js .frame__blades,
+.reduced .frame__blades { display: none; }
+.no-js .frame__base,
+.reduced .frame__base { display: block; }
+.no-js .frame__caption,
+.reduced .frame__caption { opacity: 1; }
+.no-js .close__inner,
+.reduced .close__inner { opacity: 1; }
+.no-js .ruler,
+.reduced .ruler { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- 13. Title card entrance ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .js .frame--card .card__inner {
+    animation: cardIn 1.1s var(--ease) both;
+  }
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
