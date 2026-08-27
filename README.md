@@ -103,6 +103,11 @@ colour pair is loaded alongside it and revealed through a mask when the pointer
 finds the subject. Both members of a pair must be the same crop at the same
 pixel size, or the colour will not land on the frame it is revealing.
 
+How hard the tall crop is depends entirely on the subject. A vertical
+subject in a landscape frame crops straight to 9:16 with nothing invented,
+which is what `media/sbdw-tall.jpg` is. A horizontal subject cannot, because
+9:16 at full height keeps only the central 31.7% of the width.
+
 If a source is landscape only and cannot be reshot, `media/marshall-tall.jpg`
 shows the fallback: crop to the subject, then stretch the smooth background
 above and below with a continuously varying vertical scale, so the subject

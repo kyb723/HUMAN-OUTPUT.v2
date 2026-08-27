@@ -45,8 +45,11 @@ Visitors evaluate on desktop and on phones, often quickly and often in a browser
 ## Evidence on Hand
 
 - `Assets/LOGO.jpeg` - full wordmark plus monogram plus descriptor, black on white, 1456x1080.
-- `media/marshall-wide.jpg` and `media/marshall-tall.jpg` - project 01, the owner's own CGI render, converted to monochrome. The tall crop is recomposed from the same landscape source. Supplied 2026-08-27.
-- `media/` - stock images standing in for projects 02 to 05: `halflight-wireframe.jpg`, `koto-athletic.jpg`, `northbound.jpg`, `paloma.jpg`, `slice-campaign.jpg`, `slice-social.jpg`, `slice-video.jpg`, `studio.jpg`.
+- Project 01 Marshall, `media/marshall-*.jpg` - the owner's own CGI render. Landscape source, so the tall crop is recomposed rather than cropped. Supplied 2026-08-27.
+- Project 03 SBDW, `media/sbdw-*.jpg` - the owner's own photograph. The subject is vertical, so the tall crop is a true crop and needs no reconstruction. Supplied 2026-08-27.
+- Both are graded with one curve so the reel reads as a single body of work: channel-weighted greyscale, then a midtone contrast that falls to zero at both ends and so cannot clip.
+- Slot 02 is still the Koto Athletic placeholder, as are 04 and 05.
+- `media/` - stock images standing in for the remaining slots: `halflight-wireframe.jpg`, `koto-athletic.jpg`, `paloma.jpg`, `slice-campaign.jpg`, `slice-social.jpg`, `slice-video.jpg`, `studio.jpg`. These are tinted, not truly monochrome, so the reveal does not read on them.
 - Every project needs two crops, 16:9 and 9:16, swapped by `<picture>` on `(max-aspect-ratio: 1/1)`. See README for the full spec.
 - No real client work, credits, press, or testimonials exist yet. Nothing of the kind may be fabricated.
 
