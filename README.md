@@ -62,8 +62,8 @@ of that marking at once.**
 | Six capability descriptions | `about.html` |
 | Client, Year and Role on every project | `work/*.html` factsheet |
 | Project lead sentence and two body paragraphs | `work/*.html` |
-| Plate captions | `work/halflight.html`, `work/slice.html` |
-| All five projects and their photographs | see below |
+| Plate captions | `work/marshall.html`, `work/slice.html` |
+| Projects 02 to 05 and their photographs | see below |
 | Copyright year `2026` | every page footer |
 | `og:image` is a relative path; social scrapers want an absolute URL once you have a domain | `<head>` of every page |
 
@@ -77,9 +77,32 @@ date or a headcount. Do not add any of those back unless they are true.
 
 ## Adding or replacing a project
 
-**1. Drop the photograph in `media/`.** Landscape around 1600px wide works
-well. The blades crop with `object-fit: cover`, so the subject should sit near
-the centre.
+**1. Drop two crops in `media/`,** named `<project>-wide.jpg` and
+`<project>-tall.jpg`.
+
+| Crop | Pixels | Ratio | Serves |
+|---|---|---|---|
+| Wide | 2560 x 1440 | 16:9 | every landscape viewport |
+| Tall | 1440 x 2560 | 9:16 | every portrait viewport, phones and tablets |
+
+Two crops are not optional. A frame is `position: fixed; inset: 0` and the
+blades draw it with `object-fit: cover`, so the file is centre-cropped to the
+shape of the screen. A 16:9 image on a 390x844 phone shows only **25% of its
+width**. The `<picture>` element swaps on `(max-aspect-ratio: 1/1)`, so exactly
+one file is downloaded per device.
+
+Keep the subject inside the **central 75%** of each crop, and clear of the
+chrome: the top 8% (monogram and Menu), the bottom 22% (project title, over a
+scrim that darkens the bottom 46%), and the right 5% (the progress ruler, on
+landscape only).
+
+Deliver black and white. `DESIGN.md` locks the palette to monochrome; a colour
+photograph will fight every other surface on the site.
+
+If a source is landscape only and cannot be reshot, `media/marshall-tall.jpg`
+shows the fallback: crop to the subject, then stretch the smooth background
+above and below with a continuously varying vertical scale, so the subject
+stays at its true proportions and no seam appears.
 
 **2. Add a frame to `index.html`,** in the `<main class="reel">` block, between
 the title card and the closing frame. Copy an existing one:
@@ -87,8 +110,11 @@ the title card and the closing frame. Copy an existing one:
 ```html
 <article class="frame">
   <a class="frame__link" href="work/your-project.html">
-    <img class="frame__base" src="media/your-project.jpg"
-         alt="A real description of what is in the photograph." loading="lazy">
+    <picture>
+      <source media="(max-aspect-ratio: 1/1)" srcset="media/your-project-tall.jpg" width="1440" height="2560">
+      <img class="frame__base" src="media/your-project-wide.jpg" width="2560" height="1440"
+           alt="A real description of what is in the photograph." loading="lazy">
+    </picture>
     <div class="frame__overlay" data-caption>
       <div class="frame__scrim"></div>
       <div class="frame__caption">

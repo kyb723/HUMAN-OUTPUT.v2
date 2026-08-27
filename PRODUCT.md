@@ -45,7 +45,9 @@ Visitors evaluate on desktop and on phones, often quickly and often in a browser
 ## Evidence on Hand
 
 - `Assets/LOGO.jpeg` - full wordmark plus monogram plus descriptor, black on white, 1456x1080.
-- `media/` - nine monochrome stock images standing in for real work: `halflight.jpg`, `halflight-wireframe.jpg`, `koto-athletic.jpg`, `northbound.jpg`, `paloma.jpg`, `slice-campaign.jpg`, `slice-social.jpg`, `slice-video.jpg`, `studio.jpg`.
+- `media/marshall-wide.jpg` and `media/marshall-tall.jpg` - project 01, the owner's own CGI render, converted to monochrome. The tall crop is recomposed from the same landscape source. Supplied 2026-08-27.
+- `media/` - stock images standing in for projects 02 to 05: `halflight-wireframe.jpg`, `koto-athletic.jpg`, `northbound.jpg`, `paloma.jpg`, `slice-campaign.jpg`, `slice-social.jpg`, `slice-video.jpg`, `studio.jpg`.
+- Every project needs two crops, 16:9 and 9:16, swapped by `<picture>` on `(max-aspect-ratio: 1/1)`. See README for the full spec.
 - No real client work, credits, press, or testimonials exist yet. Nothing of the kind may be fabricated.
 
 ## Product Principles

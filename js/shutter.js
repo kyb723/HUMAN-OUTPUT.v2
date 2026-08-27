@@ -36,6 +36,7 @@
 
   frames.forEach(function (f) {
     f._cap = f.querySelector('[data-caption]');
+    f._base = f.querySelector('.frame__base');
     f._built = false;
     f._live = null;
   });
@@ -92,6 +93,19 @@
     var b = frame._blades;
     if (!b) return;
     var w = frame.clientWidth || window.innerWidth;
+
+    /* <picture> swaps the wide crop for the tall one when the viewport
+       turns portrait. The blades hold their own copies, so re-point them
+       whenever the browser has picked a different source. */
+    var pick = frame._base && frame._base.currentSrc;
+    if (pick && pick !== frame._src) {
+      frame._src = pick;
+      for (var s = 0; s < b.length; s++) {
+        var bi = b[s].firstChild;
+        if (bi && bi.tagName === 'IMG') bi.src = pick;
+      }
+    }
+
     for (var j = 0; j < b.length; j++) {
       var l = Math.round(j * w / BLADES);
       var r = Math.round((j + 1) * w / BLADES);
