@@ -1,0 +1,50 @@
+/* ============================================================
+   HUMAN OUTPUT - the water hero (alternate title card)
+   ------------------------------------------------------------
+   Loaded only by hero-water.html. index.html never sees this
+   file, so the shipped title card is untouched.
+
+   .is-water lands on <html> only once the context, the shaders
+   and the float target have all come up. Until then, and for
+   ever on a machine that cannot run it, the authored card is
+   what shows.
+   ============================================================ */
+
+.card__water {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  /* A finger has to be able to scroll the reel. Horizontal drags
+     still reach the surface; vertical ones belong to the page. */
+  touch-action: pan-y;
+}
+
+/* The mark now lives in the texture. The markup stays exactly
+   where it was, at zero opacity, so it is still read aloud, still
+   found by search, and still measured by the script that draws
+   the texture - which is how the two versions stay identical at
+   every viewport width. */
+.is-water .frame--card .card__inner {
+  /* site.css fades this up with animation-fill-mode: both, and a
+     filled animation outranks a normal declaration, so the entry
+     has to be cancelled before opacity will take. */
+  animation: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The static card fades up on load; so does this, in the same
+   time, so choosing between the two is a choice about the water
+   and not about the entrance. */
+@media (prefers-reduced-motion: no-preference) {
+  .js.is-water .frame--card .card__water {
+    animation: waterIn 1.1s var(--ease) both;
+  }
+}
+@keyframes waterIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

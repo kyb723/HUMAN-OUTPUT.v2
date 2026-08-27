@@ -60,6 +60,8 @@ One authored moment: the shutter. `progress x 4.5 - index x 0.1`, clamped, per b
 
 `prefers-reduced-motion: reduce` and a no-JS load both fall back to the same thing: the frames unstack into normal document flow as plain full-bleed sections. Nothing is lost but the wipe.
 
+**Under consideration: the water title card.** `hero-water.html` puts the wordmark under a still black liquid that the pointer disturbs — a second authored moment, and the only one that is continuous rather than scroll-driven. It earns its place by being the opposite of the shutter: the shutter is mechanical, staged and hard-edged; the water is slow, soft and entirely the visitor's to move. Both are monochrome, and the water is deliberately not the pastel of its reference — still black with a cold silver catch on the crests, a developer tray rather than a pool. The decision is open. `index.html` is unchanged and remains the shipped home page.
+
 ## Layout families
 
 Index (fixed frames), project hero, meta grid, text column, full-bleed stack, closing panel, menu overlay. No family repeats within a page.

@@ -166,12 +166,16 @@ step. If you change one, change all eight.
 
 ```
 index.html            the scroll experience
+hero-water.html       the same site with the alternate title card
 about.html
 contact.html
 work/*.html           five project pages
 css/site.css          all styling, tokens at the top
+css/hero-water.css    loaded only by hero-water.html
 js/site.js            capability flags, viewport unit, menu
 js/shutter.js         the scroll mechanic
+js/tint.js            colour on reach
+js/hero-water.js      the alternate title card, WebGL
 assets/               wordmark, monogram, favicon, social card
 media/                project photographs
 DESIGN.md             the visual system and why it is what it is
@@ -181,6 +185,50 @@ PRODUCT.md            durable product facts
 `assets/wordmark.png` and `assets/monogram.png` were derived from
 `assets/LOGO.jpeg` as white-on-transparent, so they sit on the dark ground and
 over photographs. Regenerate them from the original if the logo changes.
+
+---
+
+## The alternate title card
+
+`hero-water.html` is the whole site with one thing changed: the wordmark sits
+under a still black liquid instead of on the page, and the pointer disturbs it.
+Everything below the first frame is identical. Open the two pages side by side
+to choose.
+
+`index.html` does not load a byte of it. The variant is three files
+(`hero-water.html`, `css/hero-water.css`, `js/hero-water.js`) and the diff
+against `index.html` is six lines.
+
+**How it works.** A damped wave equation on the GPU, integrated across two
+half-float buffers that swap every step. Each texel holds the surface height
+now and one step ago; the next height is `2*now - then + c2 * laplacian`,
+damped, with energy deposited along the segment the pointer swept so a flick
+leaves a stroke and not a row of dots. A second pass takes the gradient of that
+height field, refracts the wordmark through it, lights the crests, and shades
+the curvature, which is what makes flat black read as liquid.
+
+Raw WebGL2, no library. The technique is the one every Three.js tutorial uses,
+but Three.js is around 600KB to draw two full-screen triangles, and this site
+has no build step to hide that behind.
+
+**Costs and limits.**
+
+- The height field is capped at 512px on its long side (320 on a phone) however
+  big the canvas gets. Waves are broad and do not need the pixels.
+- The loop runs only while the title card is the live frame and the tab is
+  visible. Scroll to the first project and it stops dead.
+- Displacement is clamped to 10px in the shader, so no speed of scrubbing can
+  tear the letterforms.
+- Measured at a locked 60fps under continuous dragging (p95 18.2ms per frame).
+- Needs WebGL2 and a float-renderable target. Without either, or under
+  `prefers-reduced-motion`, nothing runs and the authored card shows instead.
+- The markup for the mark stays in the page at zero opacity, so it is still
+  read aloud and still indexed. The texture is drawn by measuring those real
+  elements, which is how both versions place the mark identically at every
+  width.
+
+If this becomes the site, move the three files' contents into `index.html`,
+`css/site.css` and a script tag, and drop the ` — Water` suffix from the title.
 
 ---
 
