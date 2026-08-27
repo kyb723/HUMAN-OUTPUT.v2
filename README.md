@@ -45,22 +45,54 @@ is lost but the wipe.
 
 ---
 
-## Two heroes
+## Three heroes
 
-Two versions of the index are live. Everything below the first viewport is
-identical in both; only the opening frame differs.
+Three versions of the index are live. Everything below the first viewport is
+identical in all three; only the opening frame differs.
 
-| Page | Hero |
-|---|---|
-| `index.html` | Title card. Wordmark and descriptor on black. Tagged `v1-shutter-hero`. |
-| `hero-b.html` | Liquid. Three drops trail the pointer, fuse with each other and blend into the wordmark. |
+| Page | Hero | Added weight |
+|---|---|---|
+| `index.html` | Title card. Wordmark and descriptor on black. Tagged `v1-shutter-hero`. | none |
+| `hero-b.html` | Liquid, 2D. Three drops trail the pointer and fuse via an SVG goo filter. | ~4 KB gz |
+| `hero-c.html` | Mercury, real 3D. Three.js MarchingCubes metaballs with a specular material. | ~190 KB gz |
 
-`hero-b.html` adds three files and changes nothing else: `css/hero-b.css`,
-`js/hero-b.js`, and an inline SVG goo filter in its own `<head>`. The shared
-stylesheet, both shared scripts and every other page are untouched, so the two
+Each alternate hero adds its own files and changes nothing else. The shared
+stylesheet, both shared scripts and every other page are untouched, so the
 heroes cannot affect each other.
 
-### How the liquid hero works
+### How the mercury hero works (`hero-c.html`)
+
+Three.js `MarchingCubes` polygonises a scalar field every frame, so the drops
+merge as real geometry and carry a specular highlight and a rim across the
+join. The environment is a procedural softbox gradient prefiltered through
+`PMREMGenerator`; lights alone leave the liquid looking like flat plastic.
+
+Three.js r176 (MIT) is vendored under `js/vendor/` rather than loaded from a
+CDN, so the page has no runtime dependency on anyone else's uptime. Note that
+since r176 the build is split: `three.module.min.js` re-exports from
+`three.core.min.js` and **both** files are required.
+
+The one number that decides whether this holds 60fps is the field resolution,
+because polygonising is O(res^3) on the main thread every frame. It starts at
+56 on desktop and 44 on mobile, and steps down automatically if the rolling
+median frame cost passes 22ms. Measured here: 6.5ms desktop, 3.5ms mobile.
+
+Two coupled constants control quality:
+
+| Constant | Does |
+|---|---|
+| `FR` | drop radii as a fraction of the field cube. This, times the resolution, is how many grid cells a ball spans. Below about 5 the silhouette goes faceted. |
+| `FIELD` | how many pixels the field cube covers. Widening it spreads the same grid over more pixels and each drop loses cells, so it is kept just wider than the wordmark. |
+
+To make the drops smoother at no extra cost, shrink `FIELD` and raise `FR` by
+the same ratio: same size on screen, more cells per ball.
+
+The canvas sits **above** the wordmark, so a drop crossing a letter reads as
+liquid resting on the type. It fades in only after the first frame has actually
+rendered, so a slow device never flashes an empty rectangle. If WebGL is
+missing the canvas is removed and the hero falls back to the still wordmark.
+
+### How the liquid hero works (`hero-b.html`)
 
 The drops sit in a filtered layer. The filter blurs it, then drives alpha
 through a steep ramp, so two blurred shapes that overlap snap into one
@@ -173,15 +205,19 @@ step. If you change one, change all eight.
 
 ```
 index.html            the scroll experience, title-card hero
-hero-b.html           same page with the liquid hero
+hero-b.html           same page with the liquid hero (2D, SVG goo)
+hero-c.html           same page with the mercury hero (3D, Three.js)
 about.html
 contact.html
 work/*.html           five project pages
 css/site.css          all styling, tokens at the top
 css/hero-b.css        liquid hero only
+css/hero-c.css        mercury hero only
 js/site.js            capability flags, viewport unit, menu
 js/shutter.js         the scroll mechanic
 js/hero-b.js          liquid hero only
+js/hero-c.js          mercury hero only (ES module)
+js/vendor/            Three.js r176 (MIT), vendored
 assets/               wordmark, monogram, favicon, social card
 media/                project photographs
 DESIGN.md             the visual system and why it is what it is
