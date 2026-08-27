@@ -199,11 +199,13 @@ the page, and the pointer disturbs it.
 
 **The project covers.** `js/tint.js` already blooms colour out from the centre
 of a frame's subject while the pointer holds on it. Here that bloom arrives on
-water: reach the subject and a ring leaves the centre, the colour rides out
-with it, and rings keep leaving while you hold. Take the pointer off and the
-water goes still *first* — in about a quarter of a second, against the half
-second the colour takes to drain — so what you watch drain is colour from a
-flat surface, never a ripple caught mid-travel.
+water: reach the subject and about three rings set out from the centre on the
+colour's leading edge, carry on past it, and are gone — roughly 1.15s, and then
+the surface is still and stays still for as long as you hold. It is a wave that
+passes through, not a surface that keeps being stirred. Take the pointer off
+and the water goes still *first* — about a quarter of a second, against the
+half second the colour takes to drain — so what you watch drain is colour from
+a flat surface, never a ripple caught mid-travel.
 
 `index.html` does not load a byte of it. The variant is four files
 (`hero-water.html`, `css/hero-water.css`, `js/hero-water.js`,
@@ -230,6 +232,9 @@ has no build step to hide that behind.
 - Displacement is clamped to 10px in the shader, so no speed of scrubbing can
   tear the letterforms.
 - Measured at a locked 60fps under continuous dragging (p95 18.2ms per frame).
+- Boot is three idle steps rather than one block: the worst single stall
+  measured on a 2021 Mac fell from 1209ms to about 200-350ms, and none of it
+  now lands before the page is up.
 - Needs WebGL2 and a float-renderable target. Without either, or under
   `prefers-reduced-motion`, nothing runs and the authored card shows instead.
 - The markup for the mark stays in the page at zero opacity, so it is still
@@ -246,10 +251,31 @@ is evaluated straight in the fragment shader: no height field, no ping-pong, no
 float render target, and the rings come out crisp instead of smeared across a
 512px buffer.
 
+The rings are a wave train windowed by a gaussian that rides outward, so only
+about three of them exist at any moment and there is nothing behind them. They
+are driven from the moment the subject was reached, never from the reveal's own
+progress — driven off the reveal they would run backwards into the centre as
+the colour drains, which is the one thing they must not do.
+
 It attaches through what `tint.js` already publishes to the DOM — the `is-on`
 class, the `--tint-x` / `--tint-y` centre, and the `src` of the colour crop it
 picked for this device. Nothing reaches into either shared module, which is why
 `index.html` keeps running the plain tint untouched.
+
+**Everything is built before it is needed, and nothing before that.** Creating a
+WebGL context and compiling a program costs a few hundred milliseconds. Doing
+that on the first hover meant the colour was most of the way out before the
+rings existed, which is to say they were never seen at all. Doing it at page
+load meant a second of held main thread. So each cover's canvas is built on
+idle when its frame comes to the *front* — not merely when it is staged behind
+the current one, which at the top of the page would put it back into the load —
+and the title card's own boot is split into three idle steps. If a pointer does
+arrive before a canvas is ready, it engages from the moment the subject was
+reached rather than from the moment it was told, so the bloom and the rings
+pick up exactly where `tint.js` has already got to instead of snapping back.
+
+Holding a settled subject schedules no animation frames at all: once the rings
+have passed and the colour is out, the last frame is drawn and the loop ends.
 
 While the canvas is up it draws the **whole** frame, monochrome photograph and
 all, and the layers it stands in for are hidden. That is a performance

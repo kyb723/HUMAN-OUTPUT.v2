@@ -40,21 +40,36 @@
   var GATE_IN  = 90;       /* the water arrives with the colour...    */
   var GATE_OUT = 260;      /* ...and leaves well before it            */
 
-  var WAVE_PX  = 130;      /* ring to ring                            */
-  var TRAVEL   = 265;      /* px per second outward                   */
-  var HALF_PX  = 460;      /* rings are half as tall this far out     */
+  var WAVE_PX  = 150;      /* ring to ring                            */
+  var WIDTH_PX = 142;      /* how much of the wave train exists at all:*/
+                           /* a packet this wide carries about three   */
+                           /* rings and nothing behind them            */
+  var WAVE_MS  = 1150;     /* how long the rings take to cross. Longer */
+                           /* than the bloom on purpose: they set out  */
+                           /* on the colour's leading edge and carry on*/
+                           /* past it, so the gesture is long enough to*/
+                           /* be seen rather than over in half a blink */
+  var RIDE     = 1.00;     /* ...and reach the far corners             */
+  var SPEND    = 0.70;     /* spent over the last third of the travel  */
   var CORE_PX  = 72;       /* the source has a size: at the exact     */
                            /* centre there is no radial direction to  */
                            /* push along, and forcing one there wrings*/
                            /* the middle of the subject into a rosette*/
-  var BURST    = 14.0;     /* px of displacement on arrival           */
-  var SUSTAIN  = 4.5;      /* ...and while the pointer holds          */
-  var TAU      = 0.62;     /* seconds for the arrival to fall away    */
-  var LIGHT    = 0.24;     /* cold catch on a crest                   */
+  var AMP      = 16.0;     /* px of displacement across the packet     */
+  var LIGHT    = 0.34;     /* shading across a wave, signed           */
 
-  var FREQ  = 2 * Math.PI / WAVE_PX;
-  var OMEGA = TRAVEL * FREQ;
-  var FALL  = Math.LN2 / HALF_PX;
+  var FREQ = 2 * Math.PI / WAVE_PX;
+
+  function idle(fn) {
+    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: 1500 });
+    else setTimeout(fn, 80);
+  }
+
+  function smooth01(x) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    return x * x * (3 - 2 * x);
+  }
 
   /* ---- easing ---------------------------------------------- */
 
@@ -103,13 +118,12 @@
     'uniform vec2  uCover;',
     'uniform vec2  uOffset;',
     'uniform vec2  uCentre;',
-    'uniform float uTime;',
     'uniform float uOpen;',
     'uniform float uMaxR;',
+    'uniform float uFront;',
+    'uniform float uWidth;',
     'uniform float uAmp;',
     'uniform float uFreq;',
-    'uniform float uOmega;',
-    'uniform float uFall;',
     'uniform float uCore;',
     'uniform float uLight;',
     'varying vec2 vUv;',
@@ -126,15 +140,19 @@
 
     '  vec2 uv = vUv;',
     '  float dh = 0.0;',
-    '  if (m > 0.001) {',
-    /* Rings leaving the centre. Amplitude is tied to the reveal, so
-       the two crops always agree where one gives way to the other and
-       the boundary cannot show a seam. */
-    '    float phase = r * uFreq - uTime * uOmega;',
-    '    float amp = uAmp * exp(-r * uFall) * m * smoothstep(0.0, uCore, r);',
-    '    vec2 dir = d / max(r, 0.0001);',
-    '    uv += dir * (sin(phase) * amp) / uSize;',
-    '    dh = cos(phase) * amp * uFreq;',
+    '  if (m > 0.001 && uAmp > 0.0) {',
+    /* One packet of rings, travelling. The wave train is windowed by
+       a gaussian riding outward on uFront, so about three rings exist
+       at any moment and there is nothing behind them: the ripple is
+       something that passes through, not a surface that keeps being
+       stirred. Amplitude is tied to the reveal as well, so the two
+       crops always agree exactly where one gives way to the other. */
+    '    float x = r - uFront;',
+    '    float env = exp(-(x * x) / (uWidth * uWidth))',
+    '              * m * smoothstep(0.0, uCore, r);',
+    '    float k = x * uFreq;',
+    '    uv += (d / max(r, 0.0001)) * (sin(k) * uAmp * env) / uSize;',
+    '    dh = cos(k) * uFreq * uAmp * env;',
     '  }',
 
     /* Both crops are the same file dimensions, so one cover mapping
@@ -150,8 +168,9 @@
     '}'
   ].join('\n');
 
-  var UNIFORMS = ['uMono', 'uPhoto', 'uSize', 'uCover', 'uOffset', 'uCentre', 'uTime',
-                  'uOpen', 'uMaxR', 'uAmp', 'uFreq', 'uOmega', 'uFall', 'uCore', 'uLight'];
+  var UNIFORMS = ['uMono', 'uPhoto', 'uSize', 'uCover', 'uOffset', 'uCentre',
+                  'uOpen', 'uMaxR', 'uFront', 'uWidth', 'uAmp', 'uFreq',
+                  'uCore', 'uLight'];
 
   /* ---- one frame ------------------------------------------- */
 
@@ -312,21 +331,28 @@
     return true;
   };
 
-  Ripple.prototype.set = function (on) {
+  Ripple.prototype.set = function (on, since) {
     on = !!on;
     if (this.dead || this.on === on) return;
     this.on = on;
     var now = performance.now();
 
-    this.openFrom = this.open; this.openT0 = now;
+    /* Take the clock from the moment the subject was reached, not the
+       moment this happened to be told. If the canvas was still being
+       built when the pointer arrived, the bloom and the rings pick up
+       exactly where tint.js has already got to instead of snapping
+       back to the start. */
+    var t0 = (on && since) ? since : now;
+
+    this.openFrom = this.open; this.openT0 = t0;
     this.openDur = on ? IN_MS : OUT_MS;
-    this.gateFrom = this.gate; this.gateT0 = now;
+    this.gateFrom = this.gate; this.gateT0 = t0;
     this.gateDur = on ? GATE_IN : GATE_OUT;
 
     /* Struck on arrival, so the burst is spent on the way in and the
        surface is already settling by the time the colour is full. */
     if (on) {
-      this.struck = now;
+      this.struck = t0;
       this.frame.classList.add('has-ripple');
     }
     this.run();
@@ -372,12 +398,23 @@
       this.stale = false;
     }
 
-    var t = (now - this.struck) / 1000;
-    this.paint(t, this.open, this.gate * (SUSTAIN + BURST * Math.exp(-t / TAU)));
+    /* The packet only ever runs outward, from the moment the subject
+       was reached. Driving it off uOpen instead would send it running
+       backwards into the centre as the colour drains, which is the one
+       thing it must not do. */
+    var w = ease(Math.min((now - this.struck) / WAVE_MS, 1));
+    var amp = this.gate * AMP * (1 - smooth01((w - SPEND) / (1 - SPEND)));
+
+    this.paint(this.open, w * this.maxR * RIDE, amp);
+
+    /* Held, fully open, and the rings have gone: draw the settled
+       frame once and stand still. Holding a subject should not cost a
+       frame a second for as long as the pointer rests there. */
+    if (this.on && this.open >= 0.9995 && amp <= 0.0005) return false;
     return true;
   };
 
-  Ripple.prototype.paint = function (t, open, amp) {
+  Ripple.prototype.paint = function (open, front, amp) {
     var gl = this.gl;
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.useProgram(this.prog);
@@ -393,13 +430,12 @@
     gl.uniform2f(u.uCover, this.cover[0], this.cover[1]);
     gl.uniform2f(u.uOffset, this.offset[0], this.offset[1]);
     gl.uniform2f(u.uCentre, this.centre[0], this.centre[1]);
-    gl.uniform1f(u.uTime, t);
     gl.uniform1f(u.uOpen, open);
     gl.uniform1f(u.uMaxR, this.maxR);
+    gl.uniform1f(u.uFront, front);
+    gl.uniform1f(u.uWidth, WIDTH_PX);
     gl.uniform1f(u.uAmp, amp);
     gl.uniform1f(u.uFreq, FREQ);
-    gl.uniform1f(u.uOmega, OMEGA);
-    gl.uniform1f(u.uFall, FALL);
     gl.uniform1f(u.uCore, CORE_PX);
     gl.uniform1f(u.uLight, LIGHT);
 
@@ -456,23 +492,61 @@
     var base = frame.querySelector('.frame__base');
     if (!base) return;
 
-    var rip = null, mono = null, refused = false;
+    var rip = null, mono = null, wanted = '', refused = false;
+    var primed = false, onSince = 0, dead = false;
 
-    /* Load the monochrome crop ourselves. The blades already pulled
-       this exact file, so it comes straight out of cache, and owning
-       it means nothing here waits on an element the browser has
-       decided not to finish. */
-    function refresh() {
+    /* Load the monochrome crop ourselves, and not before something
+       asks for it. The blades have already pulled this exact file, so
+       it comes out of cache the moment it is wanted, and nothing is
+       added to what the page fetches on the way in. Owning it also
+       means nothing here waits on the frame's own base img, which is
+       display:none and marked loading="lazy" and therefore sits at
+       complete === false for the life of the page. */
+    function load() {
       var src = base.currentSrc || base.src;
-      if (!src || (mono && mono.src === src)) return;
+      if (!src || wanted === src) return;
+      wanted = src;
       var im = new Image();
       im.decoding = 'async';
       im.onload = function () {
+        if (wanted !== im.src) return;      /* a rotation overtook it */
         mono = im;
         if (rip) rip.setMono(im);
+        primed = false;
         sync();
       };
       im.src = src;
+    }
+
+    /* A turn to portrait swaps the crop, but only for a subject that
+       has already been reached once. */
+    function refresh() { if (mono) load(); }
+
+    /* Build the canvas while the frame is on screen and the pointer
+       is still somewhere else. Creating a context and compiling the
+       program costs a few hundred milliseconds, and doing that on the
+       first hover meant the colour was most of the way out before the
+       rings existed - which is to say they were never seen at all. */
+    function prime() {
+      if (rip || refused || primed) return;
+      /* The frame in front, not merely the one staged behind it. At
+         the top of the page the first project is already live, and
+         building its canvas there would put a second context and a
+         second shader compile into the middle of the page load - the
+         one place there is no idle time to spend them in. */
+      if (!frame.classList.contains('is-live')) return;
+      if (frame.classList.contains('is-inert')) return;
+      if (reduce.matches || root.classList.contains('reduced')) return;
+      if (!mono) { load(); return; }
+      primed = true;
+      idle(function () {
+        if (rip || refused || dead) return;
+        var r = new Ripple(frame, tint, mono);
+        if (!r.boot()) { refused = true; r.kill(); return; }
+        rip = r;
+        live.push(rip);
+        sync();                 /* in case the pointer got there first */
+      });
     }
 
     function sync() {
@@ -480,21 +554,14 @@
          called this. Without the flag it would simply be put straight
          back on. */
       if (scrolling) { if (rip) rip.standDown(); return; }
+
       var want = tint.classList.contains('is-on') && frame.classList.contains('is-live');
-      if (!want && !rip) return;
-      if (!rip) {
-        /* One attempt. A context that will not come up, or a shader
-           that will not compile, will not come up on the next pointer
-           move either, and retrying from inside an observer callback
-           is how you spend a whole microtask checkpoint failing. */
-        if (refused || !mono) return;
-        if (reduce.matches || root.classList.contains('reduced')) return;
-        var r = new Ripple(frame, tint, mono);
-        if (!r.boot()) { refused = true; r.kill(); return; }
-        rip = r;
-        live.push(rip);
-      }
-      rip.set(want);
+      if (want) { if (!onSince) onSince = performance.now(); }
+      else onSince = 0;
+
+      prime();
+      if (!rip) return;
+      rip.set(want, onSince);
     }
 
     new MutationObserver(sync).observe(tint, { attributes: true, attributeFilter: ['class'] });
@@ -502,7 +569,6 @@
     tint.addEventListener('load', sync);
 
     hooks.push({ sync: sync, refresh: refresh });
-    refresh();
     sync();
   }
 

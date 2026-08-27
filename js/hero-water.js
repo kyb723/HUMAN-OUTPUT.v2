@@ -486,7 +486,7 @@
 
   function start() {
     if (dead || running || reduce.matches || document.hidden) return;
-    if (!booted && !boot()) { fallback(); return; }
+    if (!booted) { boot(start); return; }      /* comes back when ready */
     if (!resize()) { fallback(); return; }
     running = true;
     last = 0;
@@ -506,7 +506,23 @@
     if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
   }
 
-  function boot() {
+  /* Boot in slices, and not while the page is still coming up.
+     Measured on this machine: creating the context costs about 330ms,
+     compiling the two programs another 410ms, and drawing and
+     uploading the wordmark texture 250ms more. Run as one block from
+     load, that is a full second with the main thread held shut. Run a
+     step at a time on idle, the page is up and readable first and no
+     single step is long enough to be felt.
+
+     Nothing is mounted until the last step, so the authored card is
+     what shows for the whole of it, and the canvas only takes over
+     once it already has the identical mark drawn in it. */
+  function idle(fn) {
+    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: 1200 });
+    else setTimeout(fn, 60);
+  }
+
+  function makeContext() {
     canvas = document.createElement('canvas');
     canvas.className = 'card__water';
     canvas.setAttribute('aria-hidden', 'true');
@@ -522,6 +538,14 @@
     if (!gl.getExtension('EXT_color_buffer_float') &&
         !gl.getExtension('EXT_color_buffer_half_float')) return false;
 
+    canvas.addEventListener('webglcontextlost', function (e) {
+      e.preventDefault();
+      fallback();
+    });
+    return true;
+  }
+
+  function makePrograms() {
     quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quad);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -529,22 +553,34 @@
     simProg = program(SIM, ['uState', 'uTexel', 'uAspect', 'uFrom', 'uTo',
                             'uForce', 'uRadius', 'uC2', 'uDamp', 'uBand', 'uEdge']);
     viewProg = program(VIEW, ['uState', 'uText', 'uTexel', 'uSize', 'uRefract',
-                            'uMaxPx', 'uSpec', 'uGain', 'uCaustic']);
-    if (!simProg || !viewProg) return false;
+                              'uMaxPx', 'uSpec', 'uGain', 'uCaustic']);
+    return !!(simProg && viewProg);
+  }
 
+  function mount() {
+    if (!resize()) return false;
     card.insertBefore(canvas, card.firstChild);
     root.classList.add('is-water');
     booted = true;
-
-    canvas.addEventListener('webglcontextlost', function (e) {
-      e.preventDefault();
-      fallback();
-    });
 
     /* The first thing the visitor sees is the mark settling out of
        a single drop, not a mark that was already sitting there. */
     setTimeout(function () { drop(0.5, 0.5, DROP * 1.15); }, 240);
     return true;
+  }
+
+  var booting = false;
+
+  function boot(done) {
+    if (booting) return;
+    booting = true;
+    var steps = [makeContext, makePrograms, mount], i = 0;
+    idle(function step() {
+      if (dead) { booting = false; return; }
+      if (!steps[i++]()) { booting = false; fallback(); return; }
+      if (i < steps.length) idle(step);
+      else { booting = false; done(); }
+    });
   }
 
   /* ---- wiring ---------------------------------------------- */
