@@ -46,24 +46,23 @@
   var GATE_IN  = 140;      /* the water arrives with the colour...    */
   var GATE_OUT = 420;      /* ...and leaves well before it            */
 
-  var WAVE_PX  = 230;      /* ring to ring. Broad and slow, like the  */
-                           /* swells a drop leaves on the title card,  */
-                           /* not the tight rings of a struck surface  */
-  var WIDTH_PX = 180;      /* how much of the wave train exists at all:*/
-                           /* a packet this wide carries about three   */
-                           /* rings and nothing behind them            */
-  var WAVE_MS  = 2900;     /* how long the rings take to cross. Longer */
-                           /* than the bloom on purpose: they set out  */
-                           /* on the colour's leading edge and carry on*/
-                           /* past it, so the gesture is long enough to*/
-                           /* be seen rather than over in half a blink */
-  var RIDE     = 1.00;     /* ...and reach the far corners             */
+  var WAVE_PX  = 260;      /* the leading swell, crest to crest        */
+  var CHIRP    = 0.0016;   /* and how fast the ones behind it tighten. */
+                           /* Evenly spaced rings are the tell that    */
+                           /* something is a sine wave and not water:  */
+                           /* a real drop leaves a broad swell in front*/
+                           /* with progressively finer ripples trailing*/
+  var RISE_PX  = 90;       /* how sharply the leading edge stands up   */
+  var TAIL_PX  = 260;      /* and how far the train reaches behind it  */
+  var SPREAD   = 420;      /* energy thins as the circle grows         */
+  var WAVE_MS  = 3400;     /* how long the rings take to cross         */
+  var RIDE     = 1.00;     /* ...and that they reach the far corners   */
   var SPEND    = 0.70;     /* spent over the last third of the travel  */
   var CORE_PX  = 72;       /* the source has a size: at the exact     */
                            /* centre there is no radial direction to  */
                            /* push along, and forcing one there wrings*/
                            /* the middle of the subject into a rosette*/
-  var AMP      = 18.0;     /* px of displacement across the packet     */
+  var AMP      = 24.0;     /* px of displacement at the leading edge   */
   var LIGHT    = 0.34;     /* shading across a wave, signed           */
 
   var FREQ = 2 * Math.PI / WAVE_PX;
@@ -129,7 +128,10 @@
     'uniform float uOpen;',
     'uniform float uMaxR;',
     'uniform float uFront;',
-    'uniform float uWidth;',
+    'uniform float uRise;',
+    'uniform float uTail;',
+    'uniform float uChirp;',
+    'uniform float uSpread;',
     'uniform float uAmp;',
     'uniform float uFreq;',
     'uniform float uCore;',
@@ -149,18 +151,26 @@
     '  vec2 uv = vUv;',
     '  float dh = 0.0;',
     '  if (m > 0.001 && uAmp > 0.0) {',
-    /* One packet of rings, travelling. The wave train is windowed by
-       a gaussian riding outward on uFront, so about three rings exist
-       at any moment and there is nothing behind them: the ripple is
-       something that passes through, not a surface that keeps being
-       stirred. Amplitude is tied to the reveal as well, so the two
-       crops always agree exactly where one gives way to the other. */
-    '    float x = r - uFront;',
-    '    float env = exp(-(x * x) / (uWidth * uWidth))',
-    '              * m * smoothstep(0.0, uCore, r);',
-    '    float k = x * uFreq;',
-    '    uv += (d / max(r, 0.0001)) * (sin(k) * uAmp * env) / uSize;',
-    '    dh = cos(k) * uFreq * uAmp * env;',
+    /* Distance behind the leading edge. Ahead of it there is nothing
+       at all: water a wave has not reached yet is flat, and a packet
+       that ripples on both sides of its own front is the other half
+       of why a sine train does not read as water. */
+    '    float x = uFront - r;',
+    '    float env = smoothstep(0.0, uRise, x) * exp(-x / uTail);',
+
+    /* Rings tighten as they trail. The quadratic phase makes the local
+       wavelength fall off as 1 / (1 + 2 * chirp * x), so the swell at
+       the front is the broadest thing on the surface and everything
+       behind it is closer than the one before. */
+    '    float ph = uFreq * x * (1.0 + uChirp * x);',
+
+    /* And the whole thing thins as the circle it is spread around
+       grows. */
+    '    float amp = uAmp * env * m * smoothstep(0.0, uCore, r)',
+    '              / sqrt(1.0 + r / uSpread);',
+
+    '    uv += (d / max(r, 0.0001)) * (sin(ph) * amp) / uSize;',
+    '    dh = -cos(ph) * amp * uFreq * (1.0 + 2.0 * uChirp * x);',
     '  }',
 
     /* Both crops are the same file dimensions, so one cover mapping
@@ -177,8 +187,8 @@
   ].join('\n');
 
   var UNIFORMS = ['uMono', 'uPhoto', 'uSize', 'uCover', 'uOffset', 'uCentre',
-                  'uOpen', 'uMaxR', 'uFront', 'uWidth', 'uAmp', 'uFreq',
-                  'uCore', 'uLight'];
+                  'uOpen', 'uMaxR', 'uFront', 'uRise', 'uTail', 'uChirp',
+                  'uSpread', 'uAmp', 'uFreq', 'uCore', 'uLight'];
 
   /* ---- one frame ------------------------------------------- */
 
@@ -410,7 +420,11 @@
        was reached. Driving it off uOpen instead would send it running
        backwards into the centre as the colour drains, which is the one
        thing it must not do. */
-    var w = ease(Math.min((now - this.struck) / WAVE_MS, 1));
+    /* The reveal uses the site's curve, which accelerates through the
+       middle. A ripple must not: it leaves at speed and eases off, the
+       way a spreading wave actually loses way. */
+    var u = Math.min((now - this.struck) / WAVE_MS, 1);
+    var w = 1 - (1 - u) * (1 - u);
     var amp = this.gate * AMP * (1 - smooth01((w - SPEND) / (1 - SPEND)));
 
     this.paint(this.open, w * this.maxR * RIDE, amp);
@@ -441,7 +455,10 @@
     gl.uniform1f(u.uOpen, open);
     gl.uniform1f(u.uMaxR, this.maxR);
     gl.uniform1f(u.uFront, front);
-    gl.uniform1f(u.uWidth, WIDTH_PX);
+    gl.uniform1f(u.uRise, RISE_PX);
+    gl.uniform1f(u.uTail, TAIL_PX);
+    gl.uniform1f(u.uChirp, CHIRP);
+    gl.uniform1f(u.uSpread, SPREAD);
     gl.uniform1f(u.uAmp, amp);
     gl.uniform1f(u.uFreq, FREQ);
     gl.uniform1f(u.uCore, CORE_PX);

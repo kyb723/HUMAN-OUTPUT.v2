@@ -206,8 +206,8 @@ the frame is still and stays still for as long as you hold.
 
 The pace is deliberately that of the title card's water and not that of a hover
 state: the colour takes 2.2s to flood and 0.9s to drain, against the shipped
-reel's 780ms and 480ms, and the rings are broad (230px crest to crest) and
-cross in 2.9s. Those two colour timings live in **two** places — `IN_MS` and
+reel's 780ms and 480ms, and the leading swell is broad (260px crest to crest)
+and crosses in 3.4s. Those two colour timings live in **two** places — `IN_MS` and
 `OUT_MS` in `js/frame-ripple.js`, and the `.frame__tint` transition durations
 at the foot of `css/hero-water.css` — because the canvas hands the colour back
 to that layer for the length of a scroll. Change one, change both.
@@ -263,11 +263,26 @@ is evaluated straight in the fragment shader: no height field, no ping-pong, no
 float render target, and the rings come out crisp instead of smeared across a
 512px buffer.
 
-The rings are a wave train windowed by a gaussian that rides outward, so only
-about three of them exist at any moment and there is nothing behind them. They
-are driven from the moment the subject was reached, never from the reveal's own
-progress — driven off the reveal they would run backwards into the centre as
-the colour drains, which is the one thing they must not do.
+**What makes it read as water rather than as a sine wave.** Two things, and the
+first version had neither:
+
+- *The rings are unevenly spaced.* The phase is quadratic in the distance
+  behind the leading edge, so the local wavelength falls off as
+  `1 / (1 + 2·chirp·x)`. The swell at the front is the broadest thing on the
+  surface and every ring behind it is closer than the one before. An evenly
+  spaced train is the tell that something is a generated wave.
+- *There is nothing ahead of the front.* Water a wave has not reached yet is
+  flat. The envelope is one-sided: it stands up over 90px at the leading edge
+  and decays behind it. A packet that ripples on both sides of its own front
+  reads as a wobble, not a wave.
+
+Amplitude also thins as `1/√r` because the energy is spread around a growing
+circle, and the front leaves at speed and eases off rather than accelerating
+through the middle the way the site's easing curve does.
+
+The rings are driven from the moment the subject was reached, never from the
+reveal's own progress — driven off the reveal they would run backwards into the
+centre as the colour drains, which is the one thing they must not do.
 
 It attaches through what `tint.js` already publishes to the DOM — the `is-on`
 class, the `--tint-x` / `--tint-y` centre, and the `src` of the colour crop it
